@@ -22,7 +22,7 @@ namespace State_Machine_Cube
             rotationOffsetY = (cube.BaseScale.x * Mathf.Sqrt(2f)) / 2f
                               - cube.BaseScale.x / 2f;
 
-            fromPosition = cube.GridToWorld(cube.PreviousPosition);
+            fromPosition = cube.GridToWorld(cube.PrevPos);
             toPosition = cube.GridToWorld(cube.GridPosition);
             fromRotation = cube.transform.rotation;
 

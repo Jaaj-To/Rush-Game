@@ -1,103 +1,44 @@
-using State_Machine_Cube;
 using UnityEngine;
+using State_Machine_Cube;
+using Tiles;
 
 public class CubeController : MonoBehaviour
 {
-    #region Serialized Fields
+    private const float ROT_ANGLE = 90f;
 
-    [SerializeField] private float rotAngle = 90f;
-    [SerializeField] private int obstacleWaitTicks = 2;
-    [SerializeField] private int conveyorEndWaitTicks = 1;
+    private const int obstacleWaitTicks = 2;
 
-    #endregion Serialized Fields
-
-    #region Private Variables
+    private int conveyorEndWaitTicks = 1;
 
     private Vector3 gridOrigin;
     private Vector3 baseScale;
 
-    private Vector3Int gridPosition;
-    private Vector3Int previousPosition;
-    private Vector3Int nextPosition;
+    private Vector3Int gridPos;
+    private Vector3Int prevPos;
+    private Vector3Int nextPos;
     private Vector3Int direction;
-    private Vector3Int teleportDestination;
+    private Vector3Int tpToDest;
+    private CubeColor colorType = CubeColor.Red;
 
     private IStateCube nextState;
-    private int waitTicksLeft;
-    private bool isActionDone;
-    private bool isComingFromConveyor;
-    private bool isTeleporting;
-    private bool isArrived;
-    private bool isFinished;
-    private bool isLost;
+    private bool hasNextAction = false;
+    private int waitTicksLeft = 0;
+    private bool isActionDone = false;
+    private bool isOutConveyor = false;
+    private bool isTeleporting = false;
+    private bool isArrived = false;
+    private bool isFinished = false;
+    private bool isLost = false;
 
-    public Vector3 BaseScale
-    {
-        get
-        {
-            return baseScale;
-        }
-    }
-
-    public float RotAngle
-    {
-        get
-        {
-            return rotAngle;
-        }
-    }
-
-    public Vector3Int GridPosition
-    {
-        get
-        {
-            return gridPosition;
-        }
-    }
-
-    public Vector3Int PreviousPosition
-    {
-        get
-        {
-            return previousPosition;
-        }
-    }
-
-    public Vector3Int NextPosition
-    {
-        get
-        {
-            return nextPosition;
-        }
-    }
-
-    public bool IsArrived
-    {
-        get
-        {
-            return isArrived;
-        }
-    }
-
-    public bool IsFinished
-    {
-        get
-        {
-            return isFinished;
-        }
-    }
-
-    public bool IsLost
-    {
-        get
-        {
-            return isLost;
-        }
-    }
-
-    #endregion Private Variables
-
-    #region State Machine
+    public Vector3 BaseScale => baseScale;
+    public float RotAngle => ROT_ANGLE;
+    public Vector3Int GridPosition => gridPos;
+    public Vector3Int PrevPos => prevPos;
+    public Vector3Int NextPosition => nextPos;
+    public CubeColor ColorType => colorType;
+    public bool IsArrived => isArrived;
+    public bool IsFinished => isFinished;
+    public bool IsLost => isLost;
 
     private CubeStateMachine stateMachine;
 
@@ -105,19 +46,17 @@ public class CubeController : MonoBehaviour
     private MoveState moveState;
     private FallState fallState;
     private ConveyState conveyState;
-    private AppearState appearState;
-    private DisappearState disappearState;
+    private SpawnState appearState;
+    private DespawnState despawnState;
 
-    #endregion State Machine
-
-    #region Tick
-
-    public void Init(Vector3 pGridOrigin, Vector3Int pGridPosition, Vector3Int pDirection)
+    public void Init(Vector3 pGridOrigin, Vector3Int pGridPos, Vector3Int pDirection, CubeColor pColor)
     {
         gridOrigin = pGridOrigin;
-        gridPosition = pGridPosition;
-        previousPosition = pGridPosition;
+        gridPos = pGridPos;
+        prevPos = pGridPos;
         direction = pDirection;
+        colorType = pColor;
+        CubeColors.Paint(gameObject, CubeColors.ToColor(pColor));
         baseScale = transform.localScale;
         transform.localScale = Vector3.zero;
 
@@ -126,33 +65,58 @@ public class CubeController : MonoBehaviour
         moveState = new MoveState(this);
         fallState = new FallState(this);
         conveyState = new ConveyState(this);
-        appearState = new AppearState(this);
-        disappearState = new DisappearState(this);
+        appearState = new SpawnState(this);
+        despawnState = new DespawnState(this);
 
         stateMachine.ChangeState(voidState);
-        PlanMovement(pGridPosition, appearState);
+        NextAction(pGridPos, appearState);
     }
 
-    public void ApplyTick()
+    public void TickPrep(Level pLevel)
     {
-        previousPosition = gridPosition;
-        gridPosition = nextPosition;
+        hasNextAction = false;
+
+        if (PreparePendingAction())
+        {
+            return;
+        }
+
+        Tile lUnderTile = pLevel.GetTile(gridPos + Vector3Int.down);
+        if (lUnderTile == null)
+        {
+            Fall(pLevel.LowestHeight);
+            return;
+        }
+
+        if (TryStartAction())
+        {
+            lUnderTile.ApplyAction(this);
+            if (hasNextAction)
+            {
+                return;
+            }
+        }
+
+        Roll(pLevel.IsObstacle(gridPos + direction));
+    }
+
+    public void OnTick()
+    {
+        isOutConveyor = nextState == conveyState;
+        prevPos = gridPos;
+        gridPos = nextPos;
         stateMachine.ChangeState(nextState);
     }
 
-    public void UpdateAnimation(float pRatio)
+    public void UpdateState(float pRatio)
     {
         stateMachine.UpdateState(pRatio);
     }
 
-    public Vector3 GridToWorld(Vector3Int pGridPosition)
+    public Vector3 GridToWorld(Vector3Int pGridPos)
     {
-        return gridOrigin + (Vector3)pGridPosition;
+        return gridOrigin + (Vector3)pGridPos;
     }
-
-    #endregion Tick
-
-    #region Actions
 
     public void SetDirection(Vector3Int pDirection)
     {
@@ -161,18 +125,32 @@ public class CubeController : MonoBehaviour
 
     public void TurnRight()
     {
-        direction = new Vector3Int(direction.z, 0, -direction.x);
+        Vector3 lNewDirection = Quaternion.AngleAxis(90f, Vector3.up) * (Vector3)direction;
+        direction = Vector3Int.RoundToInt(lNewDirection);
     }
 
     public void TurnLeft()
     {
-        direction = new Vector3Int(-direction.z, 0, direction.x);
+        Vector3 lNewDirection = Quaternion.AngleAxis(-90f, Vector3.up) * (Vector3)direction;
+        direction = Vector3Int.RoundToInt(lNewDirection);
     }
 
     public void Wait(int pTicks)
     {
-        waitTicksLeft = Mathf.Max(pTicks - 1, 0);
-        PlanStay(voidState);
+        waitTicksLeft = pTicks - 1;
+        if (waitTicksLeft < 0)
+        {
+            waitTicksLeft = 0;
+        }
+        ActionDone(voidState);
+    }
+
+    public void StopAfterConvey()
+    {
+        if (isOutConveyor && conveyorEndWaitTicks > 0)
+        {
+            Wait(conveyorEndWaitTicks);
+        }
     }
 
     public void Convey(Vector3Int pDirection, bool pIsDestinationBlocked)
@@ -180,24 +158,20 @@ public class CubeController : MonoBehaviour
         if (pIsDestinationBlocked)
         {
             isActionDone = false;
-            PlanStay(voidState);
-            return;
+            ActionDone(voidState);
         }
-
-        isComingFromConveyor = true;
-        PlanMovement(gridPosition + pDirection, conveyState);
+        else
+        {
+            NextAction(gridPos + pDirection, conveyState);
+        }
     }
 
     public void Teleport(Vector3Int pDestination)
     {
-        teleportDestination = pDestination;
+        tpToDest = pDestination;
         isTeleporting = true;
-        PlanStay(disappearState);
+        ActionDone(despawnState);
     }
-
-    #endregion Actions
-
-    #region Implementation
 
     private bool PreparePendingAction()
     {
@@ -206,18 +180,16 @@ public class CubeController : MonoBehaviour
             isFinished = true;
             return true;
         }
-
-        if (waitTicksLeft > 0)
+        else if (waitTicksLeft > 0)
         {
             waitTicksLeft--;
-            PlanStay(voidState);
+            ActionDone(voidState);
             return true;
         }
-
-        if (isTeleporting)
+        else if (isTeleporting)
         {
             isTeleporting = false;
-            PlanMovement(teleportDestination, appearState);
+            NextAction(tpToDest, appearState);
             isActionDone = true;
             return true;
         }
@@ -233,24 +205,7 @@ public class CubeController : MonoBehaviour
         }
 
         isActionDone = true;
-        isComingFromConveyor = false;
         return true;
-    }
-
-    private void RollOnGround(bool pIsFrontBlocked)
-    {
-        if (isComingFromConveyor)
-        {
-            isComingFromConveyor = false;
-
-            if (conveyorEndWaitTicks > 0)
-            {
-                Wait(conveyorEndWaitTicks);
-                return;
-            }
-        }
-
-        Roll(pIsFrontBlocked);
     }
 
     private void Roll(bool pIsFrontBlocked)
@@ -259,42 +214,40 @@ public class CubeController : MonoBehaviour
         {
             TurnRight();
             Wait(obstacleWaitTicks);
-            return;
         }
-
-        PlanMovement(gridPosition + direction, moveState);
+        else
+        {
+            NextAction(gridPos + direction, moveState);
+        }
     }
 
-    private void Fall()
-    {
-        isComingFromConveyor = false;
-        PlanMovement(gridPosition + Vector3Int.down, fallState);
-    }
-
-    private void Arrive()
+    public void Arrive()
     {
         isArrived = true;
-        PlanStay(disappearState);
+        ActionDone(despawnState);
     }
 
-    private void Lose()
+    private void Fall(int pLowestHeight)
     {
-        isLost = true;
-        PlanStay(voidState);
+        NextAction(gridPos + Vector3Int.down, fallState);
+        if (nextPos.y < pLowestHeight)
+        {
+            isLost = true;
+        }
     }
 
-    private void PlanMovement(Vector3Int pNextPosition, IStateCube pNextState)
+    private void NextAction(Vector3Int pNextPos, IStateCube pNextState)
     {
-        nextPosition = pNextPosition;
+        nextPos = pNextPos;
         nextState = pNextState;
         isActionDone = false;
+        hasNextAction = true;
     }
 
-    private void PlanStay(IStateCube pNextState)
+    private void ActionDone(IStateCube pNextState)
     {
-        nextPosition = gridPosition;
+        nextPos = gridPos;
         nextState = pNextState;
+        hasNextAction = true;
     }
-
-    #endregion Implementation
 }

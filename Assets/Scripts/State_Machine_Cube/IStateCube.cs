@@ -1,6 +1,9 @@
-public interface IStateCube
+namespace State_Machine_Cube
 {
-    void EnterState();
-    void UpdateState(float ratio);
-    void ExitState();
+    public interface IStateCube
+    {
+        void EnterState();
+        void UpdateState(float ratio);
+        void ExitState();
+    }
 }

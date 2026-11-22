@@ -1,43 +1,57 @@
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Serialization;
 
 public class CameraController : MonoBehaviour
 {
-    private Vector3 distanceToCenter;
+    [SerializeField] private Transform target;
+    [SerializeField] private Vector3 pivotOffset = Vector3.up;
+    [SerializeField] private float radius = 20f;
+
+    [SerializeField] private float keyboardSpeed = 90f;
+    [SerializeField] private float mouseSensitivity = 0.2f;
+    [SerializeField] private float rotSmoothing = 10f;
+
+    [SerializeField] private float startLongitude = 0f;
+    [SerializeField] private float startLatitude = 30f;
+    [SerializeField] private float minLatitude = 10f;
+    [SerializeField] private float maxLatitude = 85f;
+
     private float longTheta;
     private float latPhi;
-    private float minClamp = -45f;
-    private float maxClamp = 90f;
-    private Vector3 lastMousePos;
-    [SerializeField] private float radius = 20f; 
-    [SerializeField] private float cameraSpeed = 2f;
-    
-    void Start()
+    private Quaternion currentRotation;
+
+    private void Start()
     {
-        transform.position = new Vector3(0, 0, -radius);
-        distanceToCenter = transform.position;
+        longTheta = startLongitude;
+        latPhi = startLatitude;
+        currentRotation = Quaternion.Euler(latPhi, longTheta, 0f);
+        PlaceCamera();
     }
-    
-    void LateUpdate()
+
+    private void LateUpdate()
     {
-        longTheta -= Input.GetAxis("Horizontal") * cameraSpeed  * Time.deltaTime;
-        latPhi += Input.GetAxis("Vertical") * cameraSpeed * Time.deltaTime;
-        Vector3 lMouseDelta = Input.mousePosition - lastMousePos;
-        lastMousePos = Mouse.current.position.ReadValue();
+        longTheta -= Input.GetAxis("Horizontal") * keyboardSpeed * Time.deltaTime;
+        latPhi += Input.GetAxis("Vertical") * keyboardSpeed * Time.deltaTime;
 
-        if (Input.GetMouseButton(1))
+        if (Input.GetMouseButton(1) && Mouse.current != null)
         {
-            longTheta += lMouseDelta.x * cameraSpeed * Time.deltaTime;
-            latPhi -= lMouseDelta.y * cameraSpeed * Time.deltaTime;
-        } 
-        
-        latPhi = Mathf.Clamp(latPhi, minClamp, maxClamp);
+            Vector2 lMouseDelta = Mouse.current.delta.ReadValue();
+            longTheta += lMouseDelta.x * mouseSensitivity;
+            latPhi -= lMouseDelta.y * mouseSensitivity;
+        }
 
-        Quaternion lCamRot = Quaternion.Euler(latPhi, longTheta, 0);
-        transform.rotation = lCamRot;
+        latPhi = Mathf.Clamp(latPhi, minLatitude, maxLatitude);
+
+        Quaternion lTargetRotation = Quaternion.Euler(latPhi, longTheta, 0f);
+        currentRotation = Quaternion.Slerp(currentRotation, lTargetRotation, rotSmoothing * Time.deltaTime);
         
-        transform.position = lCamRot * distanceToCenter ;
+        PlaceCamera();
+    }
+
+    private void PlaceCamera()
+    {
+        Vector3 lPivot = target.position + pivotOffset;
+        transform.rotation = currentRotation;
+        transform.position = lPivot + currentRotation * new Vector3(0f, 0f, -radius);
     }
 }
