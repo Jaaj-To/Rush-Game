@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Level : MonoBehaviour
 {
-    [SerializeField] private List<AltTileStock> altTileInventory = new List<AltTileStock>();
+    [SerializeField] private AltTilesStock altTilesStock;
 
     private Dictionary<Vector3Int, Tile> tiles = new Dictionary<Vector3Int, Tile>();
     private Dictionary<Vector3Int, AltTile> placedAltTiles = new Dictionary<Vector3Int, AltTile>();
@@ -14,7 +14,6 @@ public class Level : MonoBehaviour
     private int lowestHeight = 0;
 
     public Vector3 GridOrigin => gridOrigin;
-    public List<AltTileStock> AltTileInventory => altTileInventory;
     public List<CubeSpawner> Spawners => spawners;
     public int LowestHeight => lowestHeight;
 
@@ -56,7 +55,7 @@ public class Level : MonoBehaviour
 
         spawners.AddRange(GetComponentsInChildren<CubeSpawner>());
 
-        foreach (AltTileStock lStock in altTileInventory)
+        foreach (AltStock lStock in altTilesStock.AltStockList) 
         {
             if (lStock.Prefab == null)
             {

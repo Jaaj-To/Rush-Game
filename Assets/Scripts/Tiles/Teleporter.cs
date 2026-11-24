@@ -17,7 +17,7 @@ namespace Tiles
         {
             if (linkedTeleporter == null)
             {
-                Debug.LogWarning(name + " n'a pas de teleporteur lie");
+                Debug.Log("tp" + name+" n'est pas link");
                 return;
             }
 

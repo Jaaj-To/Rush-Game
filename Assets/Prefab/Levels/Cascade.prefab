@@ -125,6 +125,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d2830e894457a54bbb38d02e905d70e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Level
+  altTilesStock: {fileID: 11400000, guid: 5eabae777e5651f45a403e6a06d17a28, type: 2}
 --- !u!1001 &55004115951003059
 PrefabInstance:
   m_ObjectHideFlags: 0

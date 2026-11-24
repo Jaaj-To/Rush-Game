@@ -58,7 +58,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d2830e894457a54bbb38d02e905d70e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Level
-  altTileInventory: []
+  altTilesStock: {fileID: 11400000, guid: ddd14b6859ead004185b385307294243, type: 2}
 --- !u!1 &5067795313636494092
 GameObject:
   m_ObjectHideFlags: 0
