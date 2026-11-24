@@ -147,6 +147,10 @@ PrefabInstance:
       propertyPath: m_LocalPosition.x
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 1739189035649458157, guid: 5271792eada240f4489c4a16d30cb932, type: 3}
+      propertyPath: altTileInventory.Array.size
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1765318388073438913, guid: 5271792eada240f4489c4a16d30cb932, type: 3}
       propertyPath: m_LocalPosition.x
       value: 2

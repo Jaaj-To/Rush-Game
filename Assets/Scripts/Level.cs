@@ -67,8 +67,6 @@ public class Level : MonoBehaviour
             remainingAltTiles.TryGetValue(lStock.Prefab, out int lCount);
             remainingAltTiles[lStock.Prefab] = lCount + lStock.Count;
         }
-
-        Debug.Log(name + " construit avec " + tiles.Count + " tiles et " + spawners.Count + " spawners");
     }
 
     private void RegisterTile(Tile pTile)
@@ -76,7 +74,6 @@ public class Level : MonoBehaviour
         Vector3Int lGridPos = WorldToGrid(pTile.transform.position);
         if (tiles.ContainsKey(lGridPos))
         {
-            Debug.LogWarning("Deux tiles sur la case " + lGridPos + " : " + tiles[lGridPos].name + " et " + pTile.name);
             return;
         }
 

@@ -6,9 +6,9 @@ public class CubeController : MonoBehaviour
 {
     private const float ROT_ANGLE = 90f;
 
-    private const int obstacleWaitTicks = 2;
+    private const int TWO_WAIT_TICK = 2;
 
-    private int conveyorEndWaitTicks = 1;
+    private const int ONE_WAIT_TICK = 1;
 
     private Vector3 gridOrigin;
     private Vector3 baseScale;
@@ -69,7 +69,7 @@ public class CubeController : MonoBehaviour
         despawnState = new DespawnState(this);
 
         stateMachine.ChangeState(voidState);
-        NextAction(pGridPos, appearState);
+        NextMove(pGridPos, appearState);
     }
 
     public void TickPrep(Level pLevel)
@@ -125,13 +125,13 @@ public class CubeController : MonoBehaviour
 
     public void TurnRight()
     {
-        Vector3 lNewDirection = Quaternion.AngleAxis(90f, Vector3.up) * (Vector3)direction;
+        Vector3 lNewDirection = Quaternion.AngleAxis(ROT_ANGLE, Vector3.up) * (Vector3)direction;
         direction = Vector3Int.RoundToInt(lNewDirection);
     }
 
     public void TurnLeft()
     {
-        Vector3 lNewDirection = Quaternion.AngleAxis(-90f, Vector3.up) * (Vector3)direction;
+        Vector3 lNewDirection = Quaternion.AngleAxis(-ROT_ANGLE, Vector3.up) * (Vector3)direction;
         direction = Vector3Int.RoundToInt(lNewDirection);
     }
 
@@ -142,14 +142,14 @@ public class CubeController : MonoBehaviour
         {
             waitTicksLeft = 0;
         }
-        ActionDone(voidState);
+        NextStay(voidState);
     }
 
     public void StopAfterConvey()
     {
-        if (isOutConveyor && conveyorEndWaitTicks > 0)
+        if (isOutConveyor && ONE_WAIT_TICK > 0)
         {
-            Wait(conveyorEndWaitTicks);
+            Wait(ONE_WAIT_TICK);
         }
     }
 
@@ -158,11 +158,11 @@ public class CubeController : MonoBehaviour
         if (pIsDestinationBlocked)
         {
             isActionDone = false;
-            ActionDone(voidState);
+            NextStay(voidState);
         }
         else
         {
-            NextAction(gridPos + pDirection, conveyState);
+            NextMove(gridPos + pDirection, conveyState);
         }
     }
 
@@ -170,7 +170,7 @@ public class CubeController : MonoBehaviour
     {
         tpToDest = pDestination;
         isTeleporting = true;
-        ActionDone(despawnState);
+        NextStay(despawnState);
     }
 
     private bool PreparePendingAction()
@@ -183,13 +183,13 @@ public class CubeController : MonoBehaviour
         else if (waitTicksLeft > 0)
         {
             waitTicksLeft--;
-            ActionDone(voidState);
+            NextStay(voidState);
             return true;
         }
         else if (isTeleporting)
         {
             isTeleporting = false;
-            NextAction(tpToDest, appearState);
+            NextMove(tpToDest, appearState);
             isActionDone = true;
             return true;
         }
@@ -213,30 +213,30 @@ public class CubeController : MonoBehaviour
         if (pIsFrontBlocked)
         {
             TurnRight();
-            Wait(obstacleWaitTicks);
+            Wait(TWO_WAIT_TICK);
         }
         else
         {
-            NextAction(gridPos + direction, moveState);
+            NextMove(gridPos + direction, moveState);
         }
     }
 
     public void Arrive()
     {
         isArrived = true;
-        ActionDone(despawnState);
+        NextStay(despawnState);
     }
 
     private void Fall(int pLowestHeight)
     {
-        NextAction(gridPos + Vector3Int.down, fallState);
+        NextMove(gridPos + Vector3Int.down, fallState);
         if (nextPos.y < pLowestHeight)
         {
             isLost = true;
         }
     }
 
-    private void NextAction(Vector3Int pNextPos, IStateCube pNextState)
+    private void NextMove(Vector3Int pNextPos, IStateCube pNextState)
     {
         nextPos = pNextPos;
         nextState = pNextState;
@@ -244,7 +244,7 @@ public class CubeController : MonoBehaviour
         hasNextAction = true;
     }
 
-    private void ActionDone(IStateCube pNextState)
+    private void NextStay(IStateCube pNextState)
     {
         nextPos = gridPos;
         nextState = pNextState;

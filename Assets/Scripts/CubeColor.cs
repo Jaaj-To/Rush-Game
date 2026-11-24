@@ -30,8 +30,8 @@ public static class CubeColors
     public static void Paint(GameObject pTarget, Color pColor)
     {
         MaterialPropertyBlock lBlock = new MaterialPropertyBlock();
-        foreach (Renderer lRenderer in pTarget.GetComponentsInChildren<Renderer>())
-        {
+
+        foreach (Renderer lRenderer in pTarget.GetComponentsInChildren<Renderer>()){
             lRenderer.GetPropertyBlock(lBlock);
             lBlock.SetColor(BASE_COLOR_ID, pColor);
             lRenderer.SetPropertyBlock(lBlock);
