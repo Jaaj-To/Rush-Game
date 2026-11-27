@@ -27,6 +27,7 @@ namespace Manager
         private List<CubeController> cubes = new List<CubeController>();
         private CubeCollisionChecker collisionChecker = new CubeCollisionChecker();
 
+        public static GameManager Instance { get; private set; }
         public float TickDuration => tickDuration;
         public bool IsPaused => isPaused;
         public GameStatus Status => status;
@@ -36,6 +37,15 @@ namespace Manager
         public event Action<List<CubeController>> OnCubesCollided;
         public event Action OnGameWon;
         public event Action OnGameLost;
+        
+        private void Awake()
+        {
+            if (Instance != null && Instance != this) {
+                Destroy(gameObject);
+                return;
+            }
+            Instance = this;
+        }
 
         private void Start()
         {
